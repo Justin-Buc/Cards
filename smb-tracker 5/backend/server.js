@@ -358,5 +358,34 @@ app.post("/api/prices/batch", async (req, res) => {
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
-
+app.get("/api/debug/:playerName", async (req, res) => {
+  const query = encodeURIComponent(`${req.params.playerName} Bowman Chrome 1st Auto`);
+  const url = `https://www.ebay.com/sch/i.html?_nkw=${query}&LH_Sold=1&LH_Complete=1&_sop=13&_ipg=120`;
+  try {
+    const { data } = await axios.get(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      timeout: 15000,
+    });
+    const $ = cheerio.load(data);
+    const items = [];
+    $(".s-item").each((i, el) => {
+      items.push({
+        title: $(el).find(".s-item__title").text().trim(),
+        price: $(el).find(".s-item__price").text().trim(),
+        rawHtml: $(el).html()?.slice(0, 200),
+      });
+    });
+    res.json({
+      itemsFound: items.length,
+      firstFewTitles: items.slice(0, 5),
+      pageSnippet: data.slice(0, 500),
+    });
+  } catch (e) {
+    res.json({ error: e.message });
+  }
+});
 app.listen(PORT, () => console.log(`SMB Tracker backend running on http://localhost:${PORT}`));

@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A&J Cards</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:          #0f1923;
+      --bg2:         #1a2535;
+      --bg3:         #243044;
+      --card:        #1e2d40;
+      --text:        #f0f4f8;
+      --text2:       #8ba3bf;
+      --text3:       #4d6680;
+      --border:      rgba(255,255,255,0.08);
+      --border2:     rgba(255,255,255,0.16);
+      --blue:        #00d4ff;
+      --blue-bg:     rgba(0,212,255,0.1);
+      --blue-text:   #00d4ff;
+      --purple:      #b388ff;
+      --purple-bg:   rgba(179,136,255,0.12);
+      --purple-text: #b388ff;
+      --teal-bg:     rgba(0,230,118,0.1);
+      --teal-text:   #00e676;
+      --amber:       #ffab40;
+      --amber-bg:    rgba(255,171,64,0.12);
+      --amber-text:  #ffab40;
+      --green:       #00e676;
+      --green-bg:    rgba(0,230,118,0.1);
+      --red:         #ff4d6d;
+      --red-bg:      rgba(255,77,109,0.1);
+      --accent:      #00d4ff;
+      --radius:      10px;
+      --radius-lg:   14px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1140px; margin: 0 auto; padding: 2rem 1rem; background: var(--bg); }
+
+    .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 12px; }
+    .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+    .logo span { color: var(--accent); }
+    .tagline { font-size: 13px; color: var(--text2); margin-top: 3px; }
+    .api-status { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border); color: var(--text2); background: var(--bg2); }
+    .api-status.ok  { color: var(--green); border-color: rgba(0,230,118,0.3); background: var(--teal-bg); }
+    .api-status.err { color: var(--red);   border-color: rgba(255,77,109,0.3); background: var(--red-bg); }
+
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
+    input, select, button { font-family: inherit; font-size: 13px; padding: 7px 12px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); outline: none; }
+    input { cursor: text; } select { cursor: pointer; }
+    input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(50,102,173,0.15); }
+    .search { width: 200px; }
+    button { cursor: pointer; }
+    .btn-primary { background: var(--accent); color: #0a1520; border-color: var(--accent); font-weight: 700; letter-spacing: 0.02em; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+    .metric { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+    .metric-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .metric-value { font-size: 22px; font-weight: 700; }
+    .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .tabs { display: flex; gap: 3px; margin-bottom: 1.5rem; background: var(--bg2); border-radius: var(--radius); padding: 4px; }
+    .tab { flex: 1; padding: 7px 12px; font-size: 12px; background: none; border: none; border-radius: 8px; color: var(--text2); cursor: pointer; text-align: center; font-weight: 500; }
+    .tab.active { background: var(--accent); color: #0a1520; font-weight: 700; border-bottom: none; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 12px; }
+    .card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; cursor: pointer; transition: border-color 0.12s; }
+    .card:hover { border-color: var(--border2); }
+    .card.selected { border: 2px solid var(--accent); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .card-name { font-size: 15px; font-weight: 700; }
+    .card-team { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: var(--radius); }
+    .badge-rank { background: var(--blue-bg); color: var(--accent); border: 0.5px solid rgba(0,212,255,0.3); font-weight: 700; }
+    .badge-pos  { background: var(--bg2); color: var(--text2); border: 0.5px solid var(--border); }
+
+    .stats-row { display: flex; gap: 18px; margin-bottom: 12px; }
+    .stat { text-align: center; }
+    .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-val { font-size: 14px; font-weight: 500; }
+
+    .grade-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding-top: 10px; border-top: 0.5px solid var(--border); }
+    .grade-cell { border-radius: var(--radius); padding: 8px 10px; }
+    .grade-cell.psa10 { background: var(--purple-bg); }
+    .grade-cell.psa9  { background: var(--blue-bg); }
+    .grade-cell.raw   { background: var(--amber-bg); }
+    .grade-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+    .grade-cell.psa10 .grade-label { color: var(--purple); }
+    .grade-cell.psa9  .grade-label { color: var(--accent); }
+    .grade-cell.raw   .grade-label { color: var(--amber); }
+    .grade-price { font-size: 15px; font-weight: 500; }
+    .grade-cell.psa10 .grade-price { color: var(--purple); font-weight: 700; }
+    .grade-cell.psa9  .grade-price { color: var(--accent); font-weight: 700; }
+    .grade-cell.raw   .grade-price { color: var(--amber); font-weight: 700; }
+    .grade-count { font-size: 10px; color: var(--text3); margin-top: 1px; }
+    .loading-pill { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 5px; padding: 6px 0; grid-column: 1/-1; }
+    .spinner { width: 10px; height: 10px; border: 1.5px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .detail { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.5rem; display: none; }
+    .detail.open { display: block; }
+    .detail-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; }
+    .detail-name { font-size: 18px; font-weight: 500; }
+    .detail-meta { font-size: 13px; color: var(--text2); margin-top: 3px; }
+    .close-btn { background: none; border: none; font-size: 20px; color: var(--text2); cursor: pointer; line-height: 1; padding: 0; }
+
+    .grade-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+    .gd-card { border-radius: var(--radius-lg); padding: 14px 16px; }
+    .gd-card.psa10 { background: var(--purple-bg); }
+    .gd-card.psa9  { background: var(--blue-bg); }
+    .gd-card.raw   { background: var(--amber-bg); }
+    .gd-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .gd-card.psa10 .gd-title { color: var(--purple); }
+    .gd-card.psa9  .gd-title { color: var(--accent); }
+    .gd-card.raw   .gd-title { color: var(--amber); }
+    .gd-median { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+    .gd-card.psa10 .gd-median { color: var(--purple); font-weight: 700; }
+    .gd-card.psa9  .gd-median { color: var(--accent); font-weight: 700; }
+    .gd-card.raw   .gd-median { color: var(--amber); font-weight: 700; }
+    .gd-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-top: 3px; }
+    .gd-row span:last-child { color: var(--text2); font-weight: 500; }
+
+    .chart-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+    .chart-tab { font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text2); cursor: pointer; }
+    .chart-tab.active { background: var(--accent); color: #0a1520; border-color: var(--accent); font-weight: 700; }
+    .chart-wrap { position: relative; height: 220px; }
+
+    .rs-section { margin-top: 1rem; }
+    .rs-title { font-size: 12px; color: var(--text2); font-weight: 500; margin-bottom: 8px; }
+    .rs-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 5px 0; border-bottom: 0.5px solid var(--border); color: var(--text2); gap: 8px; }
+    .rs-title-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+    .rs-price { font-weight: 500; color: var(--text); flex-shrink: 0; }
+    .rs-grade { font-size: 10px; padding: 1px 6px; border-radius: 10px; flex-shrink: 0; font-weight: 500; }
+    .rs-grade.psa10 { background: var(--purple-bg); color: var(--purple); }
+    .rs-grade.psa9  { background: var(--blue-bg);   color: var(--accent); }
+    .rs-grade.raw   { background: var(--amber-bg);  color: var(--amber); }
+
+    .ebay-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .ebay-link { font-size: 12px; color: var(--accent); text-decoration: none; border: 0.5px solid rgba(0,212,255,0.3); padding: 5px 12px; border-radius: var(--radius); }
+    .ebay-link:hover { background: var(--blue-bg); }
+
+    .scatter-wrap { position: relative; height: 380px; }
+    .empty { text-align: center; padding: 4rem; color: var(--text3); font-size: 14px; }
+    .legend { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    .deal-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .deal-card:hover { border-color: var(--border2); }
+    .deal-left { flex: 1; min-width: 0; }
+    .deal-name { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+    .deal-title { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
+    .deal-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .deal-grade { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: var(--radius); }
+    .deal-grade.psa10 { background: var(--purple-bg); color: var(--purple-text); }
+    .deal-grade.psa9  { background: var(--blue-bg);   color: var(--blue-text); }
+    .deal-grade.raw   { background: var(--amber-bg);  color: var(--amber-text); }
+    .deal-condition { font-size: 11px; color: var(--text3); }
+    .deal-shipping { font-size: 11px; color: var(--text3); }
+    .deal-right { text-align: right; flex-shrink: 0; }
+    .deal-price { font-size: 20px; font-weight: 500; }
+    .deal-vs { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .deal-savings { font-size: 13px; font-weight: 700; color: var(--green); margin-top: 4px; }
+    .deal-btn { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--accent); text-decoration: none; border: 0.5px solid rgba(0,212,255,0.3); padding: 4px 10px; border-radius: var(--radius); }
+    .deal-btn:hover { background: var(--blue-bg); }
+    .deals-empty { text-align: center; padding: 4rem; color: var(--text3); font-size: 14px; }
+    .deals-loading { text-align: center; padding: 3rem; color: var(--text2); font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+    .prospect-pill { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border2); background: var(--bg); color: var(--text2); cursor: pointer; user-select: none; }
+    .prospect-pill.selected { background: var(--accent); color: #0a1520; border-color: var(--accent); font-weight: 700; }
+    .auction-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .auction-card:hover { border-color: var(--border2); }
+    .auction-card.ending-soon { border-left: 3px solid var(--red); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+    .auction-card.good-deal { border-left: 3px solid var(--green); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; }
+    .auction-card.ending-soon.good-deal { border-left: 3px solid #854f0b; }
+    .ac-left { flex: 1; min-width: 0; }
+    .ac-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+    .ac-title { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
+    .ac-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+    .ac-grade { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 10px; }
+    .ac-grade.psa10 { background: var(--purple-bg); color: var(--purple); }
+    .ac-grade.psa9  { background: var(--blue-bg);   color: var(--accent); }
+    .ac-grade.raw   { background: var(--amber-bg);  color: var(--amber); }
+    .ac-bids { font-size: 11px; color: var(--text3); }
+    .ac-ship { font-size: 11px; color: var(--text3); }
+    .ac-right { text-align: right; flex-shrink: 0; }
+    .ac-bid { font-size: 19px; font-weight: 500; color: var(--text); }
+    .ac-time { font-size: 12px; font-weight: 500; margin-top: 3px; }
+    .ac-time.hot { color: var(--red); }
+    .ac-time.warm { color: var(--amber); }
+    .ac-time.cool { color: var(--text2); }
+    .ac-vsavg { font-size: 11px; margin-top: 3px; }
+    .ac-vsavg.below { color: var(--green); font-weight: 700; }
+    .ac-vsavg.above { color: var(--red); }
+    .ac-vsavg.neutral { color: var(--text3); }
+    .ac-btn { display: inline-block; margin-top: 7px; font-size: 11px; color: var(--accent); text-decoration: none; border: 0.5px solid rgba(0,212,255,0.3); padding: 3px 9px; border-radius: var(--radius); }
+    .ac-btn:hover { background: var(--blue-bg); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="logo">A&amp;J <span>Cards</span></div>
+      <div class="tagline">Bowman 1st Auto · BA Top 100 · eBay live prices</div>
+    </div>
+    <div id="apiStatus" class="api-status">Checking backend…</div>
+  </div>
+
+  <div class="controls">
+    <input class="search" type="text" placeholder="Search prospect or team…" id="searchInput" />
+    <select id="posFilter">
+      <option value="">All positions</option>
+      <option>SP</option><option>SS</option><option>OF</option>
+      <option>CF</option><option>C</option><option>3B</option><option>2B</option>
+    </select>
+    <select id="sortBy">
+      <option value="rank">Sort: BA Rank</option>
+      <option value="psa10">Sort: PSA 10 ↓</option>
+      <option value="psa9">Sort: PSA 9 ↓</option>
+      <option value="raw">Sort: Raw ↓</option>
+    </select>
+    <button class="btn-primary" id="fetchAllBtn" onclick="fetchAllPrices()">Fetch all eBay prices</button>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Prospects</div><div class="metric-value" id="mCount">—</div><div class="metric-sub">BA Top 100</div></div>
+    <div class="metric"><div class="metric-label">Avg PSA 10</div><div class="metric-value" id="mPsa10">—</div><div class="metric-sub">median</div></div>
+    <div class="metric"><div class="metric-label">Avg PSA 9</div><div class="metric-value" id="mPsa9">—</div><div class="metric-sub">median</div></div>
+    <div class="metric"><div class="metric-label">Avg raw</div><div class="metric-value" id="mRaw">—</div><div class="metric-sub">median</div></div>
+    <div class="metric"><div class="metric-label">Top PSA 10</div><div class="metric-value" id="mHigh">—</div><div class="metric-sub" id="mHighName">—</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabCards" onclick="setTab('cards')">Prospect cards</button>
+    <button class="tab" id="tabChart" onclick="setTab('chart')">Price vs rank</button>
+    <button class="tab" id="tabDeals" onclick="setTab('deals')">Deals</button>
+    <button class="tab" id="tabAuctions" onclick="setTab('auctions')">Auctions</button>
+  </div>
+
+  <div id="detailPanel" class="detail">
+    <div class="detail-head">
+      <div><div class="detail-name" id="dpName"></div><div class="detail-meta" id="dpMeta"></div></div>
+      <button class="close-btn" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="grade-detail-grid" id="dpGradeGrid"></div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Prices = avg of last 10 sales · last sale and all-time stats below</div>
+    <div class="chart-tabs">
+      <button class="chart-tab active" id="ctPsa10" onclick="setChartGrade('psa10')">PSA 10</button>
+      <button class="chart-tab" id="ctPsa9" onclick="setChartGrade('psa9')">PSA 9</button>
+      <button class="chart-tab" id="ctRaw" onclick="setChartGrade('raw')">Raw</button>
+    </div>
+    <div class="chart-wrap"><canvas id="detailChart" role="img" aria-label="Recent eBay sale prices by grade"></canvas></div>
+    <div class="rs-section" id="dpRecentSales"></div>
+    <div class="ebay-row">
+      <a id="ebayPsa10" class="ebay-link" href="#" target="_blank" rel="noopener">PSA 10 on eBay ↗</a>
+      <a id="ebayPsa9"  class="ebay-link" href="#" target="_blank" rel="noopener">PSA 9 on eBay ↗</a>
+      <a id="ebayRaw"   class="ebay-link" href="#" target="_blank" rel="noopener">Raw on eBay ↗</a>
+    </div>
+  </div>
+
+  <div id="cardsView">
+    <div class="grid" id="cardGrid"></div>
+  </div>
+
+  <div id="chartView" style="display:none">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#b388ff"></div>PSA 10</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#00d4ff"></div>PSA 9</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffab40"></div>Raw</div>
+    </div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Fetch eBay prices first to populate. Hover for detail.</div>
+    <div class="scatter-wrap"><canvas id="scatterChart" role="img" aria-label="BA rank vs card price scatter chart"></canvas></div>
+  </div>
+
+  <div id="dealsView" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:14px;color:var(--text2);">Active eBay listings at or below the last-10 sales avg. Fetch prices first, then scan.</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px;" id="dealsScannedAt"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input class="search" type="text" id="dealsSearch" placeholder="Search prospect…" style="width:170px;" />
+        <select id="dealsGradeFilter">
+          <option value="">All grades</option>
+          <option value="psa10">PSA 10</option>
+          <option value="psa9">PSA 9</option>
+          <option value="raw">Raw</option>
+        </select>
+        <button class="btn-primary" id="scanDealsBtn" onclick="scanDeals()">Scan for deals</button>
+      </div>
+    </div>
+    <div id="dealsGrid"></div>
+  </div>
+
+  <div id="auctionsView" style="display:none">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:14px;color:var(--text2);">Live eBay auctions for selected prospects, sorted by ending soonest. Prices compared against last-10 avg where available.</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px;" id="auctionsScannedAt"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+      <div style="font-size:13px;color:var(--text2);font-weight:500;">Select prospects:</div>
+      <button style="font-size:12px;padding:5px 10px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;" onclick="selectAllProspects(true)">Select all</button>
+      <button style="font-size:12px;padding:5px 10px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;" onclick="selectAllProspects(false)">Clear</button>
+    </div>
+    <div id="prospectSelector" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+      <input class="search" type="text" id="auctionsSearch" placeholder="Search prospect…" style="width:170px;" />
+      <select id="auctionsGradeFilter">
+        <option value="">All grades</option>
+        <option value="psa10">PSA 10</option>
+        <option value="psa9">PSA 9</option>
+        <option value="raw">Raw</option>
+      </select>
+      <select id="auctionsSortBy">
+        <option value="ending">Sort: Ending soonest</option>
+        <option value="bid">Sort: Lowest bid</option>
+        <option value="vsavg">Sort: Most below avg</option>
+      </select>
+      <button class="btn-primary" id="scanAuctionsBtn" onclick="scanAuctions()">Scan auctions</button>
+    </div>
+    <div id="auctionsGrid"></div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:3001";
+
+const PROSPECTS = [
+  { rank:1,  name:"Cam Caminero",      team:"Detroit Tigers",        pos:"SS", age:19, stats:{avg:".312",hr:"8",sb:"18"},        type:"bat"   },
+  { rank:2,  name:"Wyatt Langford",    team:"Texas Rangers",         pos:"OF", age:22, stats:{avg:".299",hr:"12",sb:"9"},        type:"bat"   },
+  { rank:3,  name:"Jackson Holliday",  team:"Baltimore Orioles",     pos:"SS", age:21, stats:{avg:".282",hr:"5",sb:"14"},        type:"bat"   },
+  { rank:4,  name:"Paul Skenes",       team:"Pittsburgh Pirates",    pos:"SP", age:22, stats:{era:"2.31",k9:"12.1",whip:"0.95"},type:"pitch" },
+  { rank:5,  name:"Evan Carter",       team:"Texas Rangers",         pos:"OF", age:22, stats:{avg:".276",hr:"9",sb:"11"},        type:"bat"   },
+  { rank:6,  name:"Dylan Crews",       team:"Washington Nationals",  pos:"OF", age:22, stats:{avg:".268",hr:"7",sb:"8"},         type:"bat"   },
+  { rank:7,  name:"James Wood",        team:"Washington Nationals",  pos:"OF", age:21, stats:{avg:".291",hr:"11",sb:"6"},        type:"bat"   },
+  { rank:8,  name:"Colson Montgomery", team:"Chicago White Sox",     pos:"SS", age:22, stats:{avg:".277",hr:"6",sb:"12"},        type:"bat"   },
+  { rank:9,  name:"Druw Jones",        team:"Arizona Diamondbacks",  pos:"CF", age:21, stats:{avg:".265",hr:"4",sb:"22"},        type:"bat"   },
+  { rank:10, name:"Brooks Lee",        team:"Minnesota Twins",       pos:"SS", age:23, stats:{avg:".284",hr:"7",sb:"5"},         type:"bat"   },
+  { rank:11, name:"Andrew Painter",    team:"Philadelphia Phillies", pos:"SP", age:21, stats:{era:"2.88",k9:"11.4",whip:"1.02"},type:"pitch" },
+  { rank:12, name:"Colt Keith",        team:"Detroit Tigers",        pos:"2B", age:22, stats:{avg:".294",hr:"10",sb:"4"},        type:"bat"   },
+  { rank:13, name:"Zach Neto",         team:"LA Angels",             pos:"SS", age:23, stats:{avg:".259",hr:"8",sb:"16"},        type:"bat"   },
+  { rank:14, name:"Termarr Johnson",   team:"Pittsburgh Pirates",    pos:"2B", age:20, stats:{avg:".275",hr:"6",sb:"9"},         type:"bat"   },
+  { rank:15, name:"Noelvi Marte",      team:"Cincinnati Reds",       pos:"3B", age:22, stats:{avg:".271",hr:"9",sb:"7"},         type:"bat"   },
+  { rank:16, name:"Kyle Harrison",     team:"San Francisco Giants",  pos:"SP", age:22, stats:{era:"3.44",k9:"10.8",whip:"1.18"},type:"pitch" },
+  { rank:17, name:"Roki Sasaki",       team:"LA Dodgers",            pos:"SP", age:23, stats:{era:"2.55",k9:"13.2",whip:"0.88"},type:"pitch" },
+  { rank:18, name:"Hurston Waldrep",   team:"Atlanta Braves",        pos:"SP", age:23, stats:{era:"3.12",k9:"11.5",whip:"1.05"},type:"pitch" },
+  { rank:19, name:"Enrique Bradfield", team:"Houston Astros",        pos:"CF", age:22, stats:{avg:".271",hr:"3",sb:"31"},        type:"bat"   },
+  { rank:20, name:"Chase Burns",       team:"Cincinnati Reds",       pos:"SP", age:23, stats:{era:"2.98",k9:"11.9",whip:"0.99"},type:"pitch" },
+];
+
+const priceCache = {};
+const loadingSet = new Set();
+let selectedName = null;
+let detailChartInst = null;
+let scatterChartInst = null;
+let activeChartGrade = "psa10";
+
+async function checkHealth() {
+  const el = document.getElementById("apiStatus");
+  try {
+    const r = await fetch(`${API}/api/health`, { signal: AbortSignal.timeout(3000) });
+    if (r.ok) { el.textContent = "Backend connected"; el.className = "api-status ok"; }
+    else throw new Error();
+  } catch { el.textContent = "Backend offline — demo mode"; el.className = "api-status err"; }
+}
+
+async function fetchPrice(name) {
+  if (priceCache[name] !== undefined || loadingSet.has(name)) return;
+  loadingSet.add(name); renderCards();
+  try {
+    const r = await fetch(`${API}/api/prices/${encodeURIComponent(name)}`);
+    priceCache[name] = r.ok ? await r.json() : null;
+  } catch { priceCache[name] = null; }
+  loadingSet.delete(name); renderCards(); updateMetrics();
+  if (selectedName === name) openDetail(name);
+}
+
+async function fetchAllPrices() {
+  const btn = document.getElementById("fetchAllBtn");
+  btn.disabled = true; btn.textContent = "Fetching…";
+  const names = PROSPECTS.map(p => p.name).filter(n => priceCache[n] === undefined);
+  for (let i = 0; i < names.length; i += 10) {
+    try {
+      const r = await fetch(`${API}/api/prices/batch`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ players: names.slice(i, i+10) })
+      });
+      if (r.ok) Object.assign(priceCache, await r.json());
+    } catch {}
+    renderCards(); updateMetrics();
+  }
+  btn.disabled = false; btn.textContent = "Refresh eBay prices";
+}
+
+function gradePrice(name, grade) { return priceCache[name]?.grades?.[grade]?.last10Avg ?? null; }
+function fmt(v) { return v != null ? "$" + v.toLocaleString() : "—"; }
+
+function getFiltered() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const pos = document.getElementById("posFilter").value;
+  const sort = document.getElementById("sortBy").value;
+  let list = PROSPECTS.filter(p => {
+    if (q && !p.name.toLowerCase().includes(q) && !p.team.toLowerCase().includes(q)) return false;
+    if (pos && p.pos !== pos) return false;
+    return true;
+  });
+  if (["psa10","psa9","raw"].includes(sort)) list.sort((a,b) => (gradePrice(b.name,sort)||0) - (gradePrice(a.name,sort)||0));
+  else list.sort((a,b) => a.rank - b.rank);
+  return list;
+}
+
+function renderCards() {
+  const list = getFiltered();
+  const grid = document.getElementById("cardGrid");
+  if (!list.length) { grid.innerHTML = '<div class="empty">No prospects match.</div>'; return; }
+  grid.innerHTML = list.map(p => {
+    const isLoading = loadingSet.has(p.name);
+    const pd = priceCache[p.name];
+    const statsHtml = Object.entries(p.stats).map(([k,v]) => `<div class="stat"><div class="stat-label">${k}</div><div class="stat-val">${v}</div></div>`).join("");
+    const priceSection = isLoading
+      ? `<div class="loading-pill"><div class="spinner"></div>Fetching eBay prices…</div>`
+      : pd
+        ? `<div class="grade-cell psa10"><div class="grade-label">PSA 10</div><div class="grade-price">${fmt(pd.grades?.psa10?.last10Avg)}</div><div class="grade-count">last ${pd.grades?.psa10?.last10Count??0} sales avg</div></div>
+           <div class="grade-cell psa9"><div class="grade-label">PSA 9</div><div class="grade-price">${fmt(pd.grades?.psa9?.last10Avg)}</div><div class="grade-count">last ${pd.grades?.psa9?.last10Count??0} sales avg</div></div>
+           <div class="grade-cell raw"><div class="grade-label">Raw</div><div class="grade-price">${fmt(pd.grades?.raw?.last10Avg)}</div><div class="grade-count">last ${pd.grades?.raw?.last10Count??0} sales avg</div></div>`
+        : `<div style="grid-column:1/-1;font-size:12px;color:var(--text3);padding:4px 0">Click to fetch prices</div>`;
+    return `<div class="card${selectedName===p.name?" selected":""}" onclick="selectCard('${p.name}')">
+      <div class="card-top">
+        <div><div class="card-name">${p.name}</div><div class="card-team">${p.team}</div></div>
+        <div class="badges"><span class="badge badge-rank">#${p.rank}</span><span class="badge badge-pos">${p.pos}</span></div>
+      </div>
+      <div class="stats-row">${statsHtml}</div>
+      <div class="grade-grid">${priceSection}</div>
+    </div>`;
+  }).join("");
+  document.getElementById("mCount").textContent = list.length;
+}
+
+function updateMetrics() {
+  const priced = PROSPECTS.filter(p => priceCache[p.name]?.grades);
+  [["psa10","mPsa10"],["psa9","mPsa9"],["raw","mRaw"]].forEach(([g,id]) => {
+    const vals = priced.map(p => priceCache[p.name].grades[g]?.last10Avg).filter(Boolean);
+    if (vals.length) document.getElementById(id).textContent = "$" + Math.round(vals.reduce((a,b)=>a+b,0)/vals.length).toLocaleString();
+  });
+  const top10 = priced.filter(p => priceCache[p.name].grades.psa10?.last10Avg);
+  if (top10.length) {
+    const top = top10.reduce((a,b) => priceCache[a.name].grades.psa10.last10Avg > priceCache[b.name].grades.psa10.last10Avg ? a : b);
+    document.getElementById("mHigh").textContent = "$" + priceCache[top.name].grades.psa10.last10Avg.toLocaleString();
+    document.getElementById("mHighName").textContent = top.name;
+  }
+}
+
+function selectCard(name) {
+  selectedName = name;
+  if (priceCache[name] === undefined && !loadingSet.has(name)) fetchPrice(name);
+  else if (priceCache[name]) openDetail(name);
+  renderCards();
+}
+
+function openDetail(name) {
+  const p = PROSPECTS.find(x => x.name === name);
+  const pd = priceCache[name];
+  if (!p || !pd) return;
+  document.getElementById("dpName").textContent = p.name;
+  document.getElementById("dpMeta").textContent = `${p.team} · ${p.pos} · Age ${p.age} · BA #${p.rank}`;
+
+  document.getElementById("dpGradeGrid").innerHTML = [
+    {key:"psa10",label:"PSA 10",cls:"psa10"},
+    {key:"psa9", label:"PSA 9", cls:"psa9"},
+    {key:"raw",  label:"Raw",   cls:"raw"},
+  ].map(g => {
+    const d = pd.grades?.[g.key];
+    return `<div class="gd-card ${g.cls}">
+      <div class="gd-title">${g.label}</div>
+      <div class="gd-median">${d?.last10Avg != null ? "$"+d.last10Avg.toLocaleString() : "—"}</div>
+      <div class="gd-row"><span>Last sale</span><span>${d?.lastSale != null ? "$"+d.lastSale.toLocaleString() : "—"}</span></div>
+      <div class="gd-row"><span>All-time avg</span><span>${d?.avg != null ? "$"+d.avg.toLocaleString() : "—"}</span></div>
+      <div class="gd-row"><span>Median</span><span>${d?.median != null ? "$"+d.median.toLocaleString() : "—"}</span></div>
+      <div class="gd-row"><span>Low / High</span><span>${d?.low != null ? "$"+d.low+" / $"+d.high : "—"}</span></div>
+      <div class="gd-row"><span>Total sales</span><span>${d?.count ?? 0}</span></div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("ebayPsa10").href = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(p.name+" Bowman 1st Auto PSA 10")}&LH_Sold=1&LH_Complete=1`;
+  document.getElementById("ebayPsa9").href  = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(p.name+" Bowman 1st Auto PSA 9")}&LH_Sold=1&LH_Complete=1`;
+  document.getElementById("ebayRaw").href   = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(p.name+" Bowman Chrome 1st Auto")}&LH_Sold=1&LH_Complete=1`;
+
+  renderRecentSales(pd);
+  renderDetailChart(pd, activeChartGrade);
+  document.getElementById("detailPanel").classList.add("open");
+}
+
+function renderRecentSales(pd) {
+  const all = [];
+  const labels = {psa10:"PSA 10",psa9:"PSA 9",raw:"Raw"};
+  ["psa10","psa9","raw"].forEach(g => (pd.grades?.[g]?.recentSales||[]).forEach(s => all.push({...s,grade:g})));
+  all.sort((a,b) => b.price - a.price);
+  const rs = document.getElementById("dpRecentSales");
+  if (!all.length) { rs.innerHTML = ""; return; }
+  rs.innerHTML = `<div class="rs-title">Recent eBay sales (all grades)</div>` +
+    all.slice(0,12).map(s => `<div class="rs-row">
+      <span class="rs-title-text">${s.title}</span>
+      <span class="rs-grade ${s.grade}">${labels[s.grade]}</span>
+      <span class="rs-price">$${s.price.toFixed(2)}</span>
+    </div>`).join("");
+}
+
+function setChartGrade(grade) {
+  activeChartGrade = grade;
+  ["psa10","psa9","raw"].forEach(g => {
+    const id = "ct" + g.charAt(0).toUpperCase() + g.slice(1);
+    document.getElementById(id).className = "chart-tab" + (g===grade?" active":"");
+  });
+  if (selectedName && priceCache[selectedName]) renderDetailChart(priceCache[selectedName], grade);
+}
+
+function renderDetailChart(pd, grade) {
+  const ctx = document.getElementById("detailChart").getContext("2d");
+  if (detailChartInst) detailChartInst.destroy();
+  const sales = pd.grades?.[grade]?.recentSales || [];
+  const colors = {psa10:"#7f77dd", psa9:"#3266ad", raw:"#ba7517"};
+  detailChartInst = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: sales.map((_,i) => "Sale "+(i+1)),
+      datasets: [{ label:"Price ($)", data: sales.map(s=>s.price), backgroundColor: colors[grade]+"99", borderColor: colors[grade], borderWidth:1 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ y:{ticks:{callback:v=>"$"+v,font:{size:11}},grid:{color:"rgba(128,128,128,0.1)"}}, x:{ticks:{font:{size:10}},grid:{display:false}} }
+    }
+  });
+}
+
+function closeDetail() { document.getElementById("detailPanel").classList.remove("open"); selectedName=null; renderCards(); }
+
+function setTab(tab) {
+  ["cards","chart","deals","auctions"].forEach(v => {
+    document.getElementById(v+"View").style.display = tab===v?"":"none";
+    const el = document.getElementById("tab"+v.charAt(0).toUpperCase()+v.slice(1));
+    if (el) el.className = "tab"+(tab===v?" active":"");
+  });
+  if (tab==="chart") renderScatter();
+  if (tab==="auctions") renderProspectSelector();
+}
+
+function renderScatter() {
+  const ctx = document.getElementById("scatterChart").getContext("2d");
+  if (scatterChartInst) scatterChartInst.destroy();
+  const mk = (grade, color, label) => ({
+    label, backgroundColor: color+"88", borderColor: color, borderWidth:1,
+    data: PROSPECTS.filter(p => gradePrice(p.name,grade)).map(p => ({
+      x:p.rank, y:gradePrice(p.name,grade), label:p.name,
+      r: Math.max(5, Math.sqrt(gradePrice(p.name,grade)) * 1.1)
+    }))
+  });
+  scatterChartInst = new Chart(ctx, {
+    type:"bubble",
+    data:{ datasets:[mk("psa10","#b388ff","PSA 10"), mk("psa9","#00d4ff","PSA 9"), mk("raw","#ffab40","Raw")] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ tooltip:{callbacks:{label:c=>`${c.raw.label} (${c.dataset.label}): $${c.raw.y}`}} },
+      scales:{ x:{title:{display:true,text:"BA Rank"},min:0,max:22}, y:{title:{display:true,text:"Median price ($)"},ticks:{callback:v=>"$"+v}} }
+    }
+  });
+}
+
+
+let dealsData = [];
+
+async function scanDeals() {
+  const pricedProspects = PROSPECTS.filter(p => priceCache[p.name]?.grades);
+  if (!pricedProspects.length) {
+    document.getElementById("dealsGrid").innerHTML = '<div class="deals-empty">Fetch eBay prices first from the Prospect cards tab, then come back to scan for deals.</div>';
+    return;
+  }
+  const btn = document.getElementById("scanDealsBtn");
+  btn.disabled = true; btn.textContent = "Scanning…";
+  document.getElementById("dealsGrid").innerHTML = '<div class="deals-loading"><div class="spinner"></div>Scanning active eBay listings for ' + pricedProspects.length + ' prospects…</div>';
+
+  const players = pricedProspects.map(p => ({ name: p.name, grades: priceCache[p.name].grades }));
+  try {
+    const r = await fetch(`${API}/api/deals`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ players })
+    });
+    if (!r.ok) throw new Error("Server error");
+    const data = await r.json();
+    dealsData = data.deals;
+    document.getElementById("dealsScannedAt").textContent = "Last scanned: " + new Date(data.scannedAt).toLocaleTimeString();
+    renderDeals();
+  } catch (e) {
+    document.getElementById("dealsGrid").innerHTML = '<div class="deals-empty">Could not fetch deals — make sure the backend is running.</div>';
+  }
+  btn.disabled = false; btn.textContent = "Refresh deals";
+}
+
+function renderDeals() {
+  const gradeFilter = document.getElementById("dealsGradeFilter").value;
+  const search = document.getElementById("dealsSearch").value.toLowerCase().trim();
+  const filtered = dealsData.filter(d => {
+    if (gradeFilter && d.grade !== gradeFilter) return false;
+    if (search && !d.playerName.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const grid = document.getElementById("dealsGrid");
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="deals-empty">No deals found' + (gradeFilter ? " for that grade" : "") + '. Try scanning again or fetch more prices.</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(d => `
+    <div class="deal-card">
+      <div class="deal-left">
+        <div class="deal-name">${d.playerName}</div>
+        <div class="deal-title">${d.title}</div>
+        <div class="deal-meta">
+          <span class="deal-grade ${d.grade}">${d.gradeLabel}</span>
+          ${d.condition ? `<span class="deal-condition">${d.condition}</span>` : ""}
+          ${d.shipping ? `<span class="deal-shipping">${d.shipping}</span>` : ""}
+        </div>
+        <a class="deal-btn" href="${d.url}" target="_blank" rel="noopener">View on eBay ↗</a>
+      </div>
+      <div class="deal-right">
+        <div class="deal-price">$${d.price.toFixed(2)}</div>
+        <div class="deal-vs">avg $${d.benchmark.toFixed(2)}</div>
+        <div class="deal-savings">${d.savings > 0 ? d.savings + "% below avg" : "At avg"}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+document.getElementById("dealsGradeFilter") && document.getElementById("dealsGradeFilter").addEventListener("change", renderDeals);
+document.getElementById("dealsSearch") && document.getElementById("dealsSearch").addEventListener("input", renderDeals);
+
+
+const selectedProspects = new Set(PROSPECTS.map(p => p.name));
+let auctionsData = [];
+
+function renderProspectSelector() {
+  const container = document.getElementById("prospectSelector");
+  container.innerHTML = PROSPECTS.map(p => 
+    `<div class="prospect-pill${selectedProspects.has(p.name)?" selected":""}" onclick="toggleProspect('${p.name}',this)">#${p.rank} ${p.name}</div>`
+  ).join("");
+}
+
+function toggleProspect(name, el) {
+  if (selectedProspects.has(name)) { selectedProspects.delete(name); el.classList.remove("selected"); }
+  else { selectedProspects.add(name); el.classList.add("selected"); }
+}
+
+function selectAllProspects(all) {
+  if (all) PROSPECTS.forEach(p => selectedProspects.add(p.name));
+  else selectedProspects.clear();
+  renderProspectSelector();
+}
+
+async function scanAuctions() {
+  if (!selectedProspects.size) {
+    document.getElementById("auctionsGrid").innerHTML = '<div class="deals-empty">Select at least one prospect first.</div>';
+    return;
+  }
+  const btn = document.getElementById("scanAuctionsBtn");
+  btn.disabled = true; btn.textContent = "Scanning…";
+  document.getElementById("auctionsGrid").innerHTML = '<div class="deals-loading"><div class="spinner"></div>Scanning live eBay auctions for '+selectedProspects.size+' prospects…</div>';
+
+  const players = [...selectedProspects].map(name => ({
+    name,
+    grades: priceCache[name]?.grades || {}
+  }));
+
+  try {
+    const r = await fetch(`${API}/api/auctions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ players })
+    });
+    if (!r.ok) throw new Error("Server error");
+    const data = await r.json();
+    auctionsData = data.auctions;
+    document.getElementById("auctionsScannedAt").textContent = "Last scanned: " + new Date(data.scannedAt).toLocaleTimeString() + " · " + data.count + " auctions found";
+    renderAuctions();
+  } catch (e) {
+    document.getElementById("auctionsGrid").innerHTML = '<div class="deals-empty">Could not fetch auctions — make sure the backend is running.</div>';
+  }
+  btn.disabled = false; btn.textContent = "Refresh auctions";
+}
+
+function renderAuctions() {
+  const gradeFilter = document.getElementById("auctionsGradeFilter").value;
+  const sortBy = document.getElementById("auctionsSortBy").value;
+  const search = document.getElementById("auctionsSearch").value.toLowerCase().trim();
+  let list = auctionsData.filter(a => {
+    if (gradeFilter && a.grade !== gradeFilter) return false;
+    if (search && !a.playerName.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  if (sortBy === "bid") list.sort((a,b) => a.currentBid - b.currentBid);
+  else if (sortBy === "vsavg") list.sort((a,b) => (b.vsAvg??-999) - (a.vsAvg??-999));
+  else list.sort((a,b) => a.endingSecs - b.endingSecs);
+
+  const grid = document.getElementById("auctionsGrid");
+  if (!list.length) {
+    grid.innerHTML = '<div class="deals-empty">No auctions found. Try selecting more prospects or scanning again.</div>';
+    return;
+  }
+
+  grid.innerHTML = list.map(a => {
+    const endingSoon = a.endingSecs < 3600;   // < 1 hour
+    const endingWarm = a.endingSecs < 86400;  // < 1 day
+    const goodDeal = a.vsAvg != null && a.vsAvg > 0;
+    let cardClass = "auction-card";
+    if (endingSoon && goodDeal) cardClass += " ending-soon good-deal";
+    else if (endingSoon) cardClass += " ending-soon";
+    else if (goodDeal) cardClass += " good-deal";
+
+    const timeClass = endingSoon ? "hot" : endingWarm ? "warm" : "cool";
+
+    let vsAvgHtml = "";
+    if (a.vsAvg != null) {
+      const cls = a.vsAvg > 0 ? "below" : a.vsAvg < 0 ? "above" : "neutral";
+      const sign = a.vsAvg > 0 ? "" : "+";
+      const label = a.vsAvg > 0 ? a.vsAvg+"% below avg" : a.vsAvg < 0 ? Math.abs(a.vsAvg)+"% above avg" : "at avg";
+      vsAvgHtml = `<div class="ac-vsavg ${cls}">${label} ($${a.benchmark?.toFixed(0)??"—"})</div>`;
+    } else {
+      vsAvgHtml = `<div class="ac-vsavg neutral">No price data yet</div>`;
+    }
+
+    return `<div class="${cardClass}">
+      <div class="ac-left">
+        <div class="ac-name">${a.playerName}</div>
+        <div class="ac-title">${a.title}</div>
+        <div class="ac-meta">
+          <span class="ac-grade ${a.grade}">${a.gradeLabel}</span>
+          <span class="ac-bids">${a.bids}</span>
+          ${a.shipping ? `<span class="ac-ship">${a.shipping}</span>` : ""}
+        </div>
+        ${vsAvgHtml}
+        <a class="ac-btn" href="${a.url}" target="_blank" rel="noopener">Bid on eBay ↗</a>
+      </div>
+      <div class="ac-right">
+        <div class="ac-bid">$${a.currentBid.toFixed(2)}</div>
+        <div class="ac-time ${timeClass}">${a.timeLeft || "—"}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+document.getElementById("auctionsGradeFilter").addEventListener("change", renderAuctions);
+document.getElementById("auctionsSortBy").addEventListener("change", renderAuctions);
+document.getElementById("auctionsSearch").addEventListener("input", renderAuctions);
+
+document.getElementById("searchInput").addEventListener("input", renderCards);
+document.getElementById("posFilter").addEventListener("change", renderCards);
+document.getElementById("sortBy").addEventListener("change", renderCards);
+
+checkHealth();
+renderCards();
+</script>
+</body>
+</html>
